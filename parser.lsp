@@ -109,7 +109,7 @@
          ((string=   lexeme "type"    )  'TYPE       )
          ((string=   lexeme "("       )  'LEFT-P     )
          ((string=   lexeme ")"       )  'RIGHT-P    )
-         ((string=   lexeme "*"       )  'MUL        )
+         ((string=   lexeme "*"       )  'MULT       )
          ((string=   lexeme "+"       )  'ADD        )
          ((string=   lexeme ","       )  'COMMA      )
          ((string=   lexeme ":"       )  'COLON      )
@@ -182,15 +182,15 @@
 ; token  - returns the token  from (token lexeme)(reader)
 ; lexeme - returns the lexeme from (token lexeme)(reader)
 ;;=====================================================================
-
+;; ------------------------------------------------------------------------------------
 (defun token  (state) 
    (first (pstate-lookahead state))
 )
+;; ------------------------------------------------------------------------------------
 (defun lexeme (state) 
    (second (pstate-lookahead state))
-
 )
-
+;; ------------------------------------------------------------------------------------
 ;;=====================================================================
 ; symbol table manipulation: add + lookup + display
 ;;=====================================================================
@@ -298,19 +298,47 @@
 ; <type>         --> integer | real | boolean
 ;;=====================================================================
 
-;; *** TO BE DONE ***
-
+;; ------------------------------------------------------------------------------------
 (defun var-part (state)
-  (match state 'VAR)
-  (var-dec-list state)
+   (match state 'VAR)
+   (var-dec-list state)
 )
-
+;; ------------------------------------------------------------------------------------
 (defun var-dec-list (state)
-  (var-dec state)
-  (if (eq (first (pstate-lookahead state)) 'ID)
-      (var-dec-list state))
+   (var-dec state)
+   (if (eq (first (pstate-lookahead state)) 'ID)
+      (var-dec-list state)
+   )
 )
+;; ------------------------------------------------------------------------------------
+(defun var-dec (state)
+   (id-list state)
+   (match state 'COMMA)
+   (type state) ;; <-- lär bli fel
+   (match state 'END-MARKER)
+)
+;; ------------------------------------------------------------------------------------
+(defun id-list-aux (state) 
+   (match state 'COMMA) 
+   (id-list state)
+)
+;; ------------------------------------------------------------------------------------
+(defun id-list (state)
+   (match    state 'ID)
+   (if (eq ((first pstate-lookahead state)) 'COMMA) 
+      (id-list-aux state)
+   )
+)
+;; ------------------------------------------------------------------------------------
 
+(defun type (state)
+   (cond
+      (eq token 'BOOLEAN) (match state 'BOOLEAN)
+      (eq token 'INTEGER) (match state 'INTEGER)
+      (eq token 'REAL)    (match state 'REAL   )
+      (t                               'ERROR  )
+   )
+)
 
 ;;=====================================================================
 ; <program-header>
@@ -323,7 +351,7 @@
    (match    state 'ID        )
    (match    state 'RIGHT-P   )
    (match    state 'INPUT     )
-   (match    state 'COMMA         )
+   (match    state 'COMMA     )
    (match    state 'OUTPUT    )
    (match    state 'LEFT-P    )
    (match    state 'END-MARKER)
