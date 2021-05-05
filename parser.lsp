@@ -94,36 +94,32 @@
          ((string=   lexeme "program" )  'PROGRAM    )
          ((string=   lexeme "var"     )  'VAR        )
 
-         ((string=   lexeme "input"   )  'input      )
-         ((string=   lexeme "output"  )  'output     )
-         ((string=   lexeme "begin"   )  'begin      )
-         ((string=   lexeme "end"     )  'end        )
-         ((string=   lexeme "boolean" )  'boolean    )
-         ((string=   lexeme "integer" )  'integer    )
-         ((string=   lexeme "real"    )  'real       )
-         ((string=   lexeme "MERROR"  )  'nfound     )
+         ((string=   lexeme "input"   )  'INPUT      )
+         ((string=   lexeme "output"  )  'OUTPUT     )
+         ((string=   lexeme "begin"   )  'BEGIN      )
+         ((string=   lexeme "end"     )  'END        )
+         ((string=   lexeme "boolean" )  'BOOLEAN    )
+         ((string=   lexeme "integer" )  'INTEGER    )
+         ((string=   lexeme "real"    )  'REAL       )
 
-         ((string=   lexeme "id"      )  'id         )
-         ((string=   lexeme "number"  )  'number     )
-         ((string=   lexeme ":="      )  ':=         )
-         ((string=   lexeme "undef"   )  'undef      )
-         ((string=   lexeme "predef"  )  'predef     )
-         ((string=   lexeme "error"   )  'error      )
-         ((string=   lexeme "type"    )  'type       )
-         ((string=   lexeme "("       )  'left-p     )
-         ((string=   lexeme ")"       )  'right-p    )
-         ((string=   lexeme "*"       )  '*          )
-         ((string=   lexeme "+"       )  '+          )
-         ((string=   lexeme ","       )  ',          )
-         ((string=   lexeme ":"       )  ':          )
-         ((string=   lexeme ";"       )  'end-marker )
-  
-;; etc,  *** TO BE DONE ***
+         ((string=   lexeme ":="      )  'ASSIGN     )
+         ((string=   lexeme "undef"   )  'UNDEF      )
+         ((string=   lexeme "predef"  )  'PREDEF     )
+         ((string=   lexeme "error"   )  'ERROR      )
+         ((string=   lexeme "type"    )  'TYPE       )
+         ((string=   lexeme "("       )  'LEFT-P     )
+         ((string=   lexeme ")"       )  'RIGHT-P    )
+         ((string=   lexeme "*"       )  'MUL        )
+         ((string=   lexeme "+"       )  'ADD        )
+         ((string=   lexeme ","       )  'COMMA      )
+         ((string=   lexeme ":"       )  'COLON      )
+         ((string=   lexeme "="       )  'EQUAL      )
+         ((string=   lexeme ";"       )  'END-MARKER )
 
-         ((string=   lexeme ""       )	'EOF     )
-         ((is-id     lexeme          )  'ID      )
-         ((is-number lexeme          )  'NUM     )
-         (t                             'UNKNOWN )
+         ((string=   lexeme ""        )  'EOF        )
+         ((is-id     lexeme           )  'ID         )
+         ((is-number lexeme           )  'NUM        )
+         (t                              'UNKNOWN    )
          )
     lexeme)
 )
@@ -133,11 +129,12 @@
 ;;=====================================================================
 
 (defun is-id (str)
-;; *** TO BE DONE ***
+   (and (alpha-char-p (char (string 'str) 0))) ((every #'alphanumericp-char-p str))
 )
 
+
 (defun is-number (str)
-;; *** TO BE DONE ***
+   (every #'digit-char-p str)   
 )
 
 ;;=====================================================================
@@ -186,9 +183,12 @@
 ; lexeme - returns the lexeme from (token lexeme)(reader)
 ;;=====================================================================
 
-(defun token  (state) ;; *** TO BE DONE ***
+(defun token  (state) 
+   (first (pstate-lookahead state))
 )
-(defun lexeme (state) ;; *** TO BE DONE *** 
+(defun lexeme (state) 
+   (second (pstate-lookahead state))
+
 )
 
 ;;=====================================================================
@@ -270,7 +270,7 @@
    (if (eq symbol (token state))
        (get-token  state)
        (synerr1    state symbol)
-       )
+   )
 )
 
 ;;=====================================================================
@@ -300,11 +300,34 @@
 
 ;; *** TO BE DONE ***
 
+(defun var-part (state)
+  (match state 'VAR)
+  (var-dec-list state)
+)
+
+(defun var-dec-list (state)
+  (var-dec state)
+  (if (eq (first (pstate-lookahead state)) 'ID)
+      (var-dec-list state))
+)
+
+
 ;;=====================================================================
 ; <program-header>
 ;;=====================================================================
 
 ;; *** TO BE DONE ***
+
+(defun program-header (state)
+   (match    state 'PROGRAM   )
+   (match    state 'ID        )
+   (match    state 'RIGHT-P   )
+   (match    state 'INPUT     )
+   (match    state 'COMMA         )
+   (match    state 'OUTPUT    )
+   (match    state 'LEFT-P    )
+   (match    state 'END-MARKER)
+)
 
 ;;=====================================================================
 ; <program> --> <program-header><var-part><stat-part>
