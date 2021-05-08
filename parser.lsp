@@ -109,11 +109,12 @@
          ((string=   lexeme "type"    )  'TYPE       )
          ((string=   lexeme "("       )  'LEFT-P     )
          ((string=   lexeme ")"       )  'RIGHT-P    )
-         ((string=   lexeme "*"       )  'MULT       )
+         ((string=   lexeme "*"       )  'MUL        )
          ((string=   lexeme "+"       )  'ADD        )
          ((string=   lexeme ","       )  'COMMA      )
          ((string=   lexeme ":"       )  'COLON      )
          ((string=   lexeme "="       )  'EQUAL      )
+         ((string=   lexeme "."       )  'PUNKT      )
          ((string=   lexeme ";"       )  'END-MARKER )
 
          ((string=   lexeme ""        )  'EOF        )
@@ -129,7 +130,7 @@
 ;;=====================================================================
 
 (defun is-id (str)
-   (and (alpha-char-p (char (string 'str) 0))) ((every #'alphanumericp-char-p str))
+   (and (alpha-char-p (char (string 'str) 0)) (every #'alphanumericp str))
 )
 
 
@@ -288,7 +289,82 @@
 ; <operand>       --> id | number
 ;;=====================================================================
 
-;; *** TO BE DONE ***
+
+(defun stat-part (state)
+   (match state 'BEGIN)
+   (stat-list   state)
+   (match state 'END  )
+   (match state 'PUNKT)
+
+)
+;; ------------------------------------------------------------------------------------
+(defun stat-list-aux (state)
+   (match state 'COLON)
+   (stat-list   state)
+)
+;; ------------------------------------------------------------------------------------
+(defun stat-list (state)
+   (stat state)
+   (if (eq (token state) 'COLON) 
+      (stat-list-aux state)
+   )
+)
+;; ------------------------------------------------------------------------------------
+(defun stat (state)
+   (assign-stat state)
+)
+;; ------------------------------------------------------------------------------------
+(defun assign-stat (state)
+   (match state 'ID    )
+   (match state 'ASSIGN)
+   (expr  state)
+)
+;; ------------------------------------------------------------------------------------
+(defun term-aux (state)
+   (match state 'MUL)
+   (term state)
+)
+;; ------------------------------------------------------------------------------------
+(defun term (state)
+   (factor state)
+   (if (eq (token state) 'MUL) 
+      (term-aux state)
+   )
+)
+;; ------------------------------------------------------------------------------------
+(defun expr-aux (state)
+   (match state 'ADD)
+   (expr state)
+)
+;; ------------------------------------------------------------------------------------
+(defun expr (state)
+   (term state)
+   (if (eq (token state) 'ADD) 
+      (expr-aux state)
+   )
+)
+
+;; ------------------------------------------------------------------------------------
+(defun factor-aux (state)
+   (match state 'LEFT-P)
+   (expr state)
+   (match state 'RIGHT-P)
+)
+;; ------------------------------------------------------------------------------------
+(defun factor (state)
+   (cond 
+      ((eq (token state) 'LEFT-P) (expr-aux  state))
+      (t                          (operand   state))
+   )
+)
+;; ------------------------------------------------------------------------------------
+(defun operand (state)
+   (cond
+      ((eq (token state) 'ID    ) (match state 'ID    ))
+      ((eq (token state) 'NUMBER) (match state 'NUMBER))
+      ((t                                      'ERROR ))
+   )
+)
 
 ;;=====================================================================
 ; <var-part>     --> var <var-dec-list>
@@ -298,24 +374,13 @@
 ; <type>         --> integer | real | boolean
 ;;=====================================================================
 
-;; ------------------------------------------------------------------------------------
-(defun var-part (state)
-   (match state 'VAR)
-   (var-dec-list state)
-)
-;; ------------------------------------------------------------------------------------
-(defun var-dec-list (state)
-   (var-dec state)
-   (if (eq (first (pstate-lookahead state)) 'ID)
-      (var-dec-list state)
+(defun types (state)
+   (cond
+      ((eq (token state) 'BOOLEAN) (match state 'BOOLEAN))
+      ((eq (token state) 'INTEGER) (match state 'INTEGER))
+      ((eq (token state) 'REAL)    (match state 'REAL   ))
+      (t                                          ERROR  )
    )
-)
-;; ------------------------------------------------------------------------------------
-(defun var-dec (state)
-   (id-list state)
-   (match state 'COMMA)
-   (type state) ;; <-- lär bli fel
-   (match state 'END-MARKER)
 )
 ;; ------------------------------------------------------------------------------------
 (defun id-list-aux (state) 
@@ -324,21 +389,33 @@
 )
 ;; ------------------------------------------------------------------------------------
 (defun id-list (state)
-   (match    state 'ID)
-   (if (eq ((first pstate-lookahead state)) 'COMMA) 
+   (match state 'ID)
+   (if (eq (token state) 'COMMA) 
       (id-list-aux state)
    )
 )
 ;; ------------------------------------------------------------------------------------
-
-(defun type (state)
-   (cond
-      (eq token 'BOOLEAN) (match state 'BOOLEAN)
-      (eq token 'INTEGER) (match state 'INTEGER)
-      (eq token 'REAL)    (match state 'REAL   )
-      (t                               'ERROR  )
+(defun var-dec (state)
+   (id-list state)
+   (match state 'COLON)
+   (types state) 
+   (match state 'END-MARKER)
+)
+;; ------------------------------------------------------------------------------------
+(defun var-dec-list (state)
+   (var-dec state)
+   (if (eq (token state) 'ID)
+      (var-dec-list state)
    )
 )
+;; ------------------------------------------------------------------------------------
+(defun var-part (state)
+   (match state 'VAR)
+   (var-dec-list state)
+)
+;; ------------------------------------------------------------------------------------
+
+
 
 ;;=====================================================================
 ; <program-header>
@@ -347,14 +424,14 @@
 ;; *** TO BE DONE ***
 
 (defun program-header (state)
-   (match    state 'PROGRAM   )
-   (match    state 'ID        )
-   (match    state 'RIGHT-P   )
-   (match    state 'INPUT     )
-   (match    state 'COMMA     )
-   (match    state 'OUTPUT    )
-   (match    state 'LEFT-P    )
-   (match    state 'END-MARKER)
+   (match  state 'PROGRAM   )
+   (match  state 'ID        )
+   (match  state 'LEFT-P    )
+   (match  state 'INPUT     )
+   (match  state 'COMMA     )
+   (match  state 'OUTPUT    )
+   (match  state 'RIGHT-P   )
+   (match  state 'END-MARKER)
 )
 
 ;;=====================================================================
@@ -417,7 +494,7 @@
 ; THE PARSER - test a single file
 ;;=====================================================================
 
-;;(parse "testfiles/testok1.pas")
+(parse "testfiles/testok1.pas")
 
 ;;=====================================================================
 ; THE PARSER - end of code
