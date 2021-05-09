@@ -390,8 +390,8 @@
 
    (cond
       ((eq (lexeme state) 'boolean) (match state 'TYPE)) ; funkar inte
-      ((eq (lexeme state) 'integer) (match state 'TYPE)) ; kolla igenom senare 
       ((eq (lexeme state) 'real)    (match state 'TYPE)) ; kan inte få dem att matcha 
+      ((eq (lexeme state) 'integer) (match state 'TYPE)) ; kolla igenom senare 
       (t                            (match state 'TYPE)) ; <-- temp fix
    )
 )
@@ -587,7 +587,6 @@
 ;;=====================================================================
 
 ;;(parse "testfiles/testok1.pas")
-;(parse "/mnt/c/Users/lukas/OneDrive/Universitetet/Programspråk/Labb/Lips-Parser-for-pascal/testfiles/testok1.pas")
 
 ;;=====================================================================
 ; THE PARSER - end of code
