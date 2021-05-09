@@ -91,36 +91,36 @@
 (defun map-lexeme (lexeme)
 (format t "Symbol: ~S ~%" lexeme)
    (list (cond
-         ((string=   lexeme "program" )  'PROGRAM    )
-         ((string=   lexeme "var"     )  'VAR        )
+         ((string=   lexeme "program" )  'PROGRAM)
+         ((string=   lexeme "var"     )  'VAR    )
 
-         ((string=   lexeme "input"   )  'INPUT      )
-         ((string=   lexeme "output"  )  'OUTPUT     )
-         ((string=   lexeme "begin"   )  'BEGIN      )
-         ((string=   lexeme "end"     )  'END        )
-         ((string=   lexeme "boolean" )  'BOOLEAN    )
-         ((string=   lexeme "integer" )  'INTEGER    )
-         ((string=   lexeme "real"    )  'REAL       )
+         ((string=   lexeme "input"   )  'INPUT  )
+         ((string=   lexeme "output"  )  'OUTPUT )
+         ((string=   lexeme "begin"   )  'BEGIN  )
+         ((string=   lexeme "end"     )  'END    )
+         ((string=   lexeme "boolean" )  'TYPE   )
+         ((string=   lexeme "integer" )  'TYPE   )
+         ((string=   lexeme "real"    )  'TYPE   )
 
-         ((string=   lexeme ":="      )  'ASSIGN     )
-         ((string=   lexeme "undef"   )  'UNDEF      )
-         ((string=   lexeme "predef"  )  'PREDEF     )
-         ((string=   lexeme "error"   )  'ERROR      )
-         ((string=   lexeme "type"    )  'TYPE       )
-         ((string=   lexeme "("       )  'LEFT-P     )
-         ((string=   lexeme ")"       )  'RIGHT-P    )
-         ((string=   lexeme "*"       )  'MUL        )
-         ((string=   lexeme "+"       )  'ADD        )
-         ((string=   lexeme ","       )  'COMMA      )
-         ((string=   lexeme ":"       )  'COLON      )
-         ((string=   lexeme "="       )  'EQUAL      )
-         ((string=   lexeme "."       )  'PUNKT      )
-         ((string=   lexeme ";"       )  'END-MARKER )
+         ((string=   lexeme ":="      )  'ASSIGN )
+         ((string=   lexeme "undef"   )  'UNDEF  )
+         ((string=   lexeme "predef"  )  'PREDEF )
+         ((string=   lexeme "error"   )  'ERROR  )
+         ((string=   lexeme "type"    )  'TYPE   )
+         ((string=   lexeme "("       )  'LP     )
+         ((string=   lexeme ")"       )  'RP     )
+         ((string=   lexeme "*"       )  'MUL    )
+         ((string=   lexeme "+"       )  'ADD    )
+         ((string=   lexeme ","       )  'COMMA  )
+         ((string=   lexeme ":"       )  'COLON  )
+         ((string=   lexeme "="       )  'EQUAL  )
+         ((string=   lexeme "."       )  'PUNKT  )
+         ((string=   lexeme ";"       )  'SCOLON )
 
-         ((string=   lexeme ""        )  'EOF        )
-         ((is-id     lexeme           )  'ID         )
-         ((is-number lexeme           )  'NUM        )
-         (t                              'UNKNOWN    )
+         ((string=   lexeme ""        )  'EOF    )
+         ((is-id     lexeme           )  'ID     )
+         ((is-number lexeme           )  'NUM    )
+         (t                              'UNKNOWN)
          )
     lexeme)
 )
@@ -130,7 +130,7 @@
 ;;=====================================================================
 
 (defun is-id (str)
-   (and (alpha-char-p (char (string 'str) 0)) (every #'alphanumericp str))
+   (and (alpha-char-p (char (string str) 0)) (every #'alphanumericp str))
 )
 
 
@@ -196,12 +196,12 @@
 ; symbol table manipulation: add + lookup + display
 ;;=====================================================================
 
-(defun symtab-add (state id)
- ()
+(defun symtab-member (state id)
+   (member id (pstate-symtab state) :test #'equal) ; F10
 )
 
-(defun symtab-member (state id)
-;; *** TO BE DONE ***
+(defun symtab-add (state id)
+	(setf (pstate-symtab state) (append (pstate-symtab state) (list id)))
 )
 
 (defun symtab-display (state)
@@ -209,7 +209,6 @@
    (format t "Symbol Table is: ~S ~%" (pstate-symtab state))
    (format t "------------------------------------------------------~%")
 )
-
 ;;=====================================================================
 ; Error functions: Syntax & Semantic
 ;;=====================================================================
@@ -274,6 +273,7 @@
    )
 )
 
+
 ;;=====================================================================
 ; THE GRAMMAR RULES
 ;;=====================================================================
@@ -288,8 +288,6 @@
 ; <factor>        --> ( <expr> ) | <operand>
 ; <operand>       --> id | number
 ;;=====================================================================
-
-
 (defun stat-part (state)
    (match state 'BEGIN)
    (stat-list   state)
@@ -299,13 +297,13 @@
 )
 ;; ------------------------------------------------------------------------------------
 (defun stat-list-aux (state)
-   (match state 'COLON)
+   (match state 'SCOLON)
    (stat-list   state)
 )
 ;; ------------------------------------------------------------------------------------
 (defun stat-list (state)
    (stat state)
-   (if (eq (token state) 'COLON) 
+   (if (eq (token state) 'SCOLON) 
       (stat-list-aux state)
    )
 )
@@ -314,7 +312,15 @@
    (assign-stat state)
 )
 ;; ------------------------------------------------------------------------------------
+
 (defun assign-stat (state)
+
+	(if (eq (token state) 'ID) 
+      (if (not (symtab-member state (lexeme state)))
+		      (semerr2 state) 
+      ) 
+	)
+      
    (match state 'ID    )
    (match state 'ASSIGN)
    (expr  state)
@@ -343,26 +349,31 @@
       (expr-aux state)
    )
 )
-
 ;; ------------------------------------------------------------------------------------
 (defun factor-aux (state)
-   (match state 'LEFT-P)
+   (match state 'LP)
    (expr state)
-   (match state 'RIGHT-P)
+   (match state 'RP)
 )
 ;; ------------------------------------------------------------------------------------
 (defun factor (state)
-   (cond 
-      ((eq (token state) 'LEFT-P) (expr-aux  state))
-      (t                          (operand   state))
-   )
+      (if (eq (token state) 'LP) 
+         (factor-aux  state)
+         (operand   state)
+      )
 )
 ;; ------------------------------------------------------------------------------------
 (defun operand (state)
+   (if (eq (token state) 'ID) 
+      (if (not (symtab-member state (lexeme state)))
+		      (semerr2 state) 
+      ) 
+	)
+
    (cond
-      ((eq (token state) 'ID    ) (match state 'ID    ))
-      ((eq (token state) 'NUMBER) (match state 'NUMBER))
-      ((t                              (synerr3 state)))
+      ((eq (token state) 'ID ) (match state 'ID ))
+      ((eq (token state) 'NUM) (match state 'NUM))
+      (t                          (synerr3 state))
    )
 )
 
@@ -375,13 +386,16 @@
 ;;=====================================================================
 
 (defun types (state)
+   ;format t "lexem is: ~S type is: ~S ~%" (lexeme state) (token state))
+
    (cond
-      ((eq (token state) 'BOOLEAN) (match state 'BOOLEAN))
-      ((eq (token state) 'INTEGER) (match state 'INTEGER))
-      ((eq (token state) 'REAL)    (match state 'REAL   ))
-      (t                                  (synerr2 state))
+      ((eq (lexeme state) 'boolean) (match state 'TYPE)) ; funkar inte
+      ((eq (lexeme state) 'integer) (match state 'TYPE)) ; kolla igenom senare 
+      ((eq (lexeme state) 'real)    (match state 'TYPE)) ; kan inte få dem att matcha 
+      (t                            (match state 'TYPE)) ; <-- temp fix
    )
 )
+
 ;; ------------------------------------------------------------------------------------
 (defun id-list-aux (state) 
    (match state 'COMMA) 
@@ -389,6 +403,14 @@
 )
 ;; ------------------------------------------------------------------------------------
 (defun id-list (state)
+	
+   (if (eq (token state) 'ID) 
+      (if (not (symtab-member state (lexeme state)))
+            (symtab-add state (lexeme state))
+		      (semerr1 state) 
+      ) 
+	)
+
    (match state 'ID)
    (if (eq (token state) 'COMMA) 
       (id-list-aux state)
@@ -399,7 +421,7 @@
    (id-list state)
    (match state 'COLON)
    (types state) 
-   (match state 'END-MARKER)
+   (match state 'SCOLON)
 )
 ;; ------------------------------------------------------------------------------------
 (defun var-dec-list (state)
@@ -422,14 +444,14 @@
 ;;=====================================================================
 
 (defun program-header (state)
-   (match  state 'PROGRAM   )
-   (match  state 'ID        )
-   (match  state 'LEFT-P    )
-   (match  state 'INPUT     )
-   (match  state 'COMMA     )
-   (match  state 'OUTPUT    )
-   (match  state 'RIGHT-P   )
-   (match  state 'END-MARKER)
+   (match  state 'PROGRAM)
+   (match  state 'ID     )
+   (match  state 'LP     )
+   (match  state 'INPUT  )
+   (match  state 'COMMA  )
+   (match  state 'OUTPUT )
+   (match  state 'RP     )
+   (match  state 'SCOLON )
 )
 
 ;;=====================================================================
@@ -452,8 +474,9 @@
 )
 
 (defun check-end (state)
-	(if (not (eq (token state) 'EOF))
-	         (check-end-aux state)         		
+	(cond 
+      ((not (eq (token state) 'EOF)) (check-end-aux state))
+      (t nil)         		
 	)
 )
 
@@ -484,66 +507,72 @@
 ; THE PARSER - parse all the test files
 ;;=====================================================================
 
+;
+;  KOD FUNKAR FRAM TILL S FILEN
+;
+
+
 (defun parse-all ()
 ;https://lispcookbook.github.io/cl-cookbook/files.html#listing-files-in-a-directory
 ;(mapcar 'parse '(directory #P "**/*.pas")) <- ta senare
+   (dribble "lisp.out")
+
+   (mapcar 'parse '(
+      "testfiles/testa.pas"
+      ;"testfiles/testaa.pas"
+      "testfiles/testb.pas"
+      "testfiles/testc.pas"
+      "testfiles/testd.pas"
+      "testfiles/teste.pas"
+      "testfiles/testf.pas"
+      "testfiles/testg.pas"
+      "testfiles/testh.pas"
+      "testfiles/testi.pas"
+      "testfiles/testj.pas"
+      "testfiles/testk.pas"
+      "testfiles/testl.pas"
+      "testfiles/testm.pas"
+      "testfiles/testn.pas"
+      "testfiles/testo.pas"
+      "testfiles/testp.pas"
+      "testfiles/testq.pas"
+      "testfiles/testr.pas"
+      "testfiles/tests.pas"
+      "testfiles/testt.pas"
+      "testfiles/testu.pas"
+      "testfiles/testv.pas"
+      "testfiles/testw.pas"
+      "testfiles/testx.pas"
+      "testfiles/testy.pas"
+      "testfiles/testz.pas"
 
 
-(mapcar 'parse '(
-   "testfiles/testa.pas"
-   "testfiles/testb.pas"
-   "testfiles/testc.pas"
-   "testfiles/testd.pas"
-   "testfiles/teste.pas"
-   "testfiles/testf.pas"
-   "testfiles/testg.pas"
-   "testfiles/testh.pas"
-   "testfiles/testi.pas"
-   "testfiles/testj.pas"
-   "testfiles/testk.pas"
-   "testfiles/testl.pas"
-   "testfiles/testm.pas"
-   "testfiles/testn.pas"
-   "testfiles/testo.pas"
-   "testfiles/testp.pas"
-   "testfiles/testq.pas"
-   "testfiles/testr.pas"
-   "testfiles/tests.pas"
-   "testfiles/testt.pas"
-   "testfiles/testu.pas"
-   "testfiles/testv.pas"
-   "testfiles/testw.pas"
-   "testfiles/testx.pas"
-   "testfiles/testy.pas"
-   "testfiles/testz.pas"
+      "testfiles/testok1.pas"
+      "testfiles/testok2.pas"
+      "testfiles/testok3.pas"
+      "testfiles/testok4.pas"
+      "testfiles/testok5.pas"
+      "testfiles/testok6.pas"
+      "testfiles/testok7.pas"
 
 
-   "testfiles/testok1.pas"
-   "testfiles/testok2.pas"
-   "testfiles/testok3.pas"
-   "testfiles/testok4.pas"
-   "testfiles/testok5.pas"
-   "testfiles/testok6.pas"
-   "testfiles/testok7.pas"
+      "testfiles/fun1.pas"
+      "testfiles/fun2.pas"
+      "testfiles/fun3.pas"
+      "testfiles/fun4.pas"
+      "testfiles/fun5.pas"
 
-
-   "testfiles/fun1.pas"
-   "testfiles/fun2.pas"
-   "testfiles/fun3.pas"
-   "testfiles/fun4.pas"
-   "testfiles/fun5.pas"
-   
-   "testfiles/sem1.pas"
-   "testfiles/sem2.pas"
-   "testfiles/sem3.pas"
-   "testfiles/sem4.pas"
-   "testfiles/sem5.pas"
+      "testfiles/sem1.pas"
+      "testfiles/sem2.pas"
+      "testfiles/sem3.pas"
+      "testfiles/sem4.pas"
+      "testfiles/sem5.pas"
+      )
    )
-)
-
-
+   (dribble)
 
 )
+
 
 
 
@@ -551,13 +580,13 @@
 ; THE PARSER - test all files
 ;;=====================================================================
 
-;; (parse-all)
+(parse-all)
 
 ;;=====================================================================
 ; THE PARSER - test a single file
 ;;=====================================================================
 
-;(parse "testfiles/testok1.pas")
+;;(parse "testfiles/testok1.pas")
 ;(parse "/mnt/c/Users/lukas/OneDrive/Universitetet/Programspråk/Labb/Lips-Parser-for-pascal/testfiles/testok1.pas")
 
 ;;=====================================================================
