@@ -507,11 +507,6 @@
 ; THE PARSER - parse all the test files
 ;;=====================================================================
 
-;
-;  KOD FUNKAR FRAM TILL S FILEN
-;
-
-
 (defun parse-all ()
 ;https://lispcookbook.github.io/cl-cookbook/files.html#listing-files-in-a-directory
 ;(mapcar 'parse '(directory #P "**/*.pas")) <- ta senare
