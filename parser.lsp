@@ -106,7 +106,6 @@
          ((string=   lexeme "undef"   )  'UNDEF  )
          ((string=   lexeme "predef"  )  'PREDEF )
          ((string=   lexeme "error"   )  'ERROR  )
-         ((string=   lexeme "type"    )  'TYPE   )
          ((string=   lexeme "("       )  'LP     )
          ((string=   lexeme ")"       )  'RP     )
          ((string=   lexeme "*"       )  'MUL    )
@@ -183,7 +182,6 @@
 ; token  - returns the token  from (token lexeme)(reader)
 ; lexeme - returns the lexeme from (token lexeme)(reader)
 ;;=====================================================================
-;; ------------------------------------------------------------------------------------
 (defun token  (state) 
    (first (pstate-lookahead state))
 )
@@ -191,7 +189,6 @@
 (defun lexeme (state) 
    (second (pstate-lookahead state))
 )
-;; ------------------------------------------------------------------------------------
 ;;=====================================================================
 ; symbol table manipulation: add + lookup + display
 ;;=====================================================================
@@ -386,13 +383,11 @@
 ;;=====================================================================
 
 (defun types (state)
-   ;format t "lexem is: ~S type is: ~S ~%" (lexeme state) (token state))
 
    (cond
-      ((eq (lexeme state) 'boolean) (match state 'TYPE)) ; funkar inte
-      ((eq (lexeme state) 'real)    (match state 'TYPE)) ; kan inte få dem att matcha 
-      ((eq (lexeme state) 'integer) (match state 'TYPE)) ; kolla igenom senare 
-      (t                            (match state 'TYPE)) ; <-- temp fix
+      ((string-equal (lexeme state) "boolean") (match state 'TYPE))
+      ((string-equal (lexeme state) "real")    (match state 'TYPE)) 
+      ((string-equal (lexeme state) "integer") (match state 'TYPE)) 
    )
 )
 
@@ -510,6 +505,8 @@
 (defun parse-all ()
 ;https://lispcookbook.github.io/cl-cookbook/files.html#listing-files-in-a-directory
 ;(mapcar 'parse '(directory #P "**/*.pas")) <- ta senare
+  
+  
    (dribble "lisp.out")
 
    (mapcar 'parse '(
